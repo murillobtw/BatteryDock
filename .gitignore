@@ -1,0 +1,15 @@
+# Build output
+BatteryDock.exe
+*.o
+*.obj
+*.pdb
+
+# IDE files
+.vs/
+*.user
+*.suo
+
+# Temporary files
+*.tmp
+*.log
+
