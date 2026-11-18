@@ -5,6 +5,7 @@ Monitor leve de bateria para Windows, escrito em C++ nativo com APIs Win32. Exib
 ## Recursos
 
 - Widget compacto na barra de tarefas, ao lado dos ícones de notificação. Usa os glifos de headset, mouse, teclado e controle do Windows; o fone usa o mesmo glifo `Headphone` do Wireless Battery.
+- O widget se oculta automaticamente durante aplicativos em tela cheia e reaparece ao voltar para a área de trabalho.
 - Menu para mostrar ou ocultar dispositivos, escolher barra de tarefas ou bandeja, atualizar, iniciar com o Windows e sair.
 - Notificação quando um aparelho chega a 15% ou menos.
 - Leitura contínua do Sony PULSE 3D pelo dongle USB, sem enviar comandos ao headset.
@@ -25,7 +26,7 @@ Não há uma API universal para a bateria de todos os acessórios. Muitos mouses
 
 ## Executar
 
-Compile o projeto seguindo as instruções abaixo e execute `BatteryDock.exe`. O programa fica na área de notificação. Clique com o botão direito no widget ou no ícone da bandeja para abrir o menu. A opção `Start with Windows` registra o programa para a sessão atual do usuário.
+Baixe `BatteryDock.exe` na página **Releases** e abra-o. O programa fica na área de notificação. Clique com o botão direito no widget ou no ícone da bandeja para abrir o menu. A opção `Start with Windows` registra o programa para a sessão atual do usuário.
 
 ## Compilar no Windows
 
