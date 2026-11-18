@@ -552,8 +552,28 @@ std::wstring DevicePercentText(const Device& d) {
     return (d.coarse ? L"~" : L"") + std::to_wstring(d.percent) + L"%";
 }
 
+bool IsFullscreenForegroundWindow() {
+    HWND foreground = GetForegroundWindow();
+    if (!foreground || foreground == g_main || foreground == g_widget || !IsWindowVisible(foreground)) return false;
+
+    RECT windowRect{};
+    if (!GetWindowRect(foreground, &windowRect)) return false;
+
+    HMONITOR monitor = MonitorFromWindow(foreground, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo{ sizeof(monitorInfo) };
+    if (!monitor || !GetMonitorInfoW(monitor, &monitorInfo)) return false;
+
+    const RECT& screen = monitorInfo.rcMonitor;
+    constexpr LONG tolerance = 2;
+    return windowRect.left <= screen.left + tolerance &&
+        windowRect.top <= screen.top + tolerance &&
+        windowRect.right >= screen.right - tolerance &&
+        windowRect.bottom >= screen.bottom - tolerance;
+}
+
 void PlaceWidget() {
     if (!g_widget || !g_widgetMode.load()) { if (g_widget) ShowWindow(g_widget, SW_HIDE); return; }
+    if (IsFullscreenForegroundWindow()) { ShowWindow(g_widget, SW_HIDE); return; }
     HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
     HWND trayArea = taskbar ? FindWindowExW(taskbar, nullptr, L"TrayNotifyWnd", nullptr) : nullptr;
     RECT taskRect{}, trayRect{};
