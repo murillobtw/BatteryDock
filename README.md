@@ -4,7 +4,7 @@ Monitor leve de bateria para Windows, escrito em C++ nativo com APIs Win32. Exib
 
 ## Recursos
 
-- Widget compacto na barra de tarefas, ao lado dos ícones de notificação. Usa os glifos de headset, mouse, teclado e controle do Windows; o fone usa o mesmo glifo `Headphone` do Wireless Battery.
+- Widget compacto preso à janela da barra de tarefas, ao lado dos ícones de notificação. Fica recortado pelos limites da barra e usa os glifos de headset, mouse, teclado e controle do Windows; o fone usa o mesmo glifo `Headphone` do Wireless Battery.
 - O widget se oculta automaticamente durante aplicativos em tela cheia e reaparece ao voltar para a área de trabalho.
 - Menu para mostrar ou ocultar dispositivos, escolher barra de tarefas ou bandeja, atualizar, iniciar com o Windows e sair.
 - Notificação quando um aparelho chega a 15% ou menos.
