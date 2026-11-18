@@ -552,9 +552,23 @@ std::wstring DevicePercentText(const Device& d) {
     return (d.coarse ? L"~" : L"") + std::to_wstring(d.percent) + L"%";
 }
 
+bool IsShellSurfaceWindow(HWND window) {
+    if (!window || window == GetShellWindow()) return true;
+    wchar_t className[64]{};
+    if (!GetClassNameW(window, className, (int)std::size(className))) return false;
+    return !_wcsicmp(className, L"Progman") || !_wcsicmp(className, L"WorkerW") ||
+        !_wcsicmp(className, L"Shell_TrayWnd") || !_wcsicmp(className, L"Shell_SecondaryTrayWnd");
+}
+
 bool IsFullscreenForegroundWindow() {
+    QUERY_USER_NOTIFICATION_STATE shellState = QUNS_NOT_PRESENT;
+    if (SUCCEEDED(SHQueryUserNotificationState(&shellState)) &&
+        (shellState == QUNS_RUNNING_D3D_FULL_SCREEN || shellState == QUNS_PRESENTATION_MODE))
+        return true;
+
     HWND foreground = GetForegroundWindow();
-    if (!foreground || foreground == g_main || foreground == g_widget || !IsWindowVisible(foreground)) return false;
+    if (!foreground || foreground == g_main || foreground == g_widget || IsShellSurfaceWindow(foreground) ||
+        !IsWindowVisible(foreground)) return false;
 
     RECT windowRect{};
     if (!GetWindowRect(foreground, &windowRect)) return false;
@@ -613,6 +627,14 @@ void PlaceWidget() {
     width = std::max(40, width);
     int x = (int)std::max<LONG>(taskRect.left + 8, trayRect.left - width - 3);
     int y = taskRect.top + ((taskRect.bottom - taskRect.top) - height) / 2;
+    HWND foreground = GetForegroundWindow();
+    if (foreground && foreground != g_main && foreground != g_widget && !IsShellSurfaceWindow(foreground)) {
+        RECT foregroundRect{}, widgetRect{ x, y, x + width, y + height }, overlap{};
+        if (GetWindowRect(foreground, &foregroundRect) && IntersectRect(&overlap, &foregroundRect, &widgetRect)) {
+            ShowWindow(g_widget, SW_HIDE);
+            return;
+        }
+    }
     SetWindowPos(g_widget, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     InvalidateRect(g_widget, nullptr, TRUE);
 }
