@@ -595,6 +595,20 @@ void PlaceWidget() {
         ShowWindow(g_widget, SW_HIDE);
         return;
     }
+    if (GetParent(g_widget) != taskbar) {
+        LONG_PTR style = GetWindowLongPtrW(g_widget, GWL_STYLE);
+        LONG_PTR exStyle = GetWindowLongPtrW(g_widget, GWL_EXSTYLE);
+        SetWindowLongPtrW(g_widget, GWL_STYLE, (style & ~WS_POPUP) | WS_CHILD);
+        SetWindowLongPtrW(g_widget, GWL_EXSTYLE, exStyle & ~WS_EX_TOPMOST);
+        SetLastError(ERROR_SUCCESS);
+        SetParent(g_widget, taskbar);
+        if (GetParent(g_widget) != taskbar) {
+            ShowWindow(g_widget, SW_HIDE);
+            return;
+        }
+        SetWindowPos(g_widget, nullptr, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
     HDC dc = GetDC(g_widget);
     HFONT font = CreateFontW(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
@@ -624,9 +638,13 @@ void PlaceWidget() {
         width += 6;
     }
     SelectObject(dc, old); DeleteObject(iconFont); DeleteObject(font); ReleaseDC(g_widget, dc);
-    width = std::max(40, width);
+    const int taskbarWidth = (int)(taskRect.right - taskRect.left);
+    const int taskbarHeight = (int)(taskRect.bottom - taskRect.top);
+    width = std::min(std::max(40, width), std::max(1, taskbarWidth - 16));
+    height = std::min(height, std::max(1, taskbarHeight));
     int x = (int)std::max<LONG>(taskRect.left + 8, trayRect.left - width - 3);
-    int y = taskRect.top + ((taskRect.bottom - taskRect.top) - height) / 2;
+    x = std::min(x, (int)taskRect.right - width - 8);
+    int y = (int)std::max<LONG>(taskRect.top, taskRect.top + ((taskRect.bottom - taskRect.top) - height) / 2);
     HWND foreground = GetForegroundWindow();
     if (foreground && foreground != g_main && foreground != g_widget && !IsShellSurfaceWindow(foreground)) {
         RECT foregroundRect{}, widgetRect{ x, y, x + width, y + height }, overlap{};
@@ -635,7 +653,9 @@ void PlaceWidget() {
             return;
         }
     }
-    SetWindowPos(g_widget, HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    POINT childPosition{ x, y };
+    MapWindowPoints(HWND_DESKTOP, taskbar, &childPosition, 1);
+    SetWindowPos(g_widget, HWND_TOP, childPosition.x, childPosition.y, width, height, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     InvalidateRect(g_widget, nullptr, TRUE);
 }
 
@@ -802,7 +822,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     RegisterClassExW(&widget);
     g_main = CreateWindowExW(WS_EX_TOOLWINDOW, WINDOW_CLASS, APP_NAME, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, instance, nullptr);
     if (!g_main) return 1;
-    g_widget = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED, WIDGET_CLASS, L"",
+    g_widget = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED, WIDGET_CLASS, L"",
         WS_POPUP, 0, 0, 100, 24, nullptr, nullptr, instance, nullptr);
     SetLayeredWindowAttributes(g_widget, RGB(1, 2, 3), 0, LWA_COLORKEY);
     g_icon = LoadIconW(nullptr, IDI_APPLICATION);
