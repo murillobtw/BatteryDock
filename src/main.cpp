@@ -33,6 +33,7 @@ constexpr UINT ID_STARTUP = 103;
 constexpr UINT ID_EXIT = 104;
 constexpr UINT ID_DEVICE_BASE = 1000;
 constexpr DWORD LOW_BATTERY_LIMIT = 15;
+constexpr wchar_t BATTERY_IDLE_GLYPH = 0xE851; // Battery1: outline with one bar
 constexpr wchar_t RUN_KEY[] = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 constexpr wchar_t PREF_KEY[] = L"Software\\BatteryDock";
 
@@ -495,7 +496,6 @@ std::wstring CurrentTaskbarText() {
         text += ShortLabel(d) + L" ";
         text += d.percent < 0 ? L"?" : (d.coarse ? L"~" : L"") + std::to_wstring(d.percent) + L"%";
     }
-    if (text.empty()) text = L"BatteryDock: conecte um aparelho compat\x00EDvel";
     if (low && !g_lowAlertShown.exchange(true)) {
         g_tray.uFlags = NIF_INFO;
         wcscpy_s(g_tray.szInfoTitle, L"Bateria baixa");
@@ -617,8 +617,10 @@ void PlaceWidget() {
     int width = 0;
     int height = 24;
     if (g_widgetDevices.empty()) {
+        HGDIOBJ oldIconFont = SelectObject(dc, iconFont);
         SIZE size{};
-        GetTextExtentPoint32W(dc, g_widgetText.c_str(), (int)g_widgetText.size(), &size);
+        GetTextExtentPoint32W(dc, &BATTERY_IDLE_GLYPH, 1, &size);
+        SelectObject(dc, oldIconFont);
         width = (int)size.cx + 12;
         height = (int)std::max<LONG>(height, size.cy + 4);
     } else {
@@ -663,7 +665,7 @@ void UpdateUI() {
     g_widgetText = CurrentTaskbarText();
     PlaceWidget();
     if (g_tray.hWnd) {
-        std::wstring tip = g_widgetText;
+        std::wstring tip = g_widgetText.empty() ? APP_NAME : g_widgetText;
         if (tip.size() > 120) tip.resize(120);
         wcsncpy_s(g_tray.szTip, tip.c_str(), _TRUNCATE);
         g_tray.uFlags = NIF_TIP;
@@ -758,7 +760,13 @@ LRESULT CALLBACK WidgetProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         HGDIOBJ old = SelectObject(dc, font);
         RECT r{}; GetClientRect(hwnd, &r);
         if (g_widgetDevices.empty()) {
-            DrawTextW(dc, g_widgetText.c_str(), -1, &r, DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_NOPREFIX);
+            HGDIOBJ oldIconFont = SelectObject(dc, iconFont);
+            SIZE iconSize{};
+            GetTextExtentPoint32W(dc, &BATTERY_IDLE_GLYPH, 1, &iconSize);
+            int x = (r.right - (int)iconSize.cx) / 2;
+            int y = (r.bottom - (int)iconSize.cy) / 2;
+            TextOutW(dc, x, y, &BATTERY_IDLE_GLYPH, 1);
+            SelectObject(dc, oldIconFont);
         } else {
             int x = 6;
             int y = (r.bottom - 18) / 2;
